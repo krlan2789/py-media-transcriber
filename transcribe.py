@@ -7,11 +7,10 @@ import torch
 import whisper
 import faster_whisper
 
-device = 'cpu'
-if torch.cuda.is_available():
-    device = 'cuda'
-
-print("CUDA : " , torch.cuda.is_available())
+# device = 'cpu'
+# if torch.cuda.is_available():
+#     device = 'cuda'
+# print("CUDA : " , torch.cuda.is_available())
 # print("CUDA Current Device : " , torch.cuda.current_device())
 # print("CUDA Is Initialized : " , torch.cuda.is_initialized())
 # print("CUDA Memory Allocated : " , torch.cuda.memory_allocated())
@@ -24,6 +23,9 @@ def clear(text: str):
 # Transcribe an audio file with openai whisper library
 # model = "turbo" | "small" | "tiny"
 def run_openai_whisper(audio, model: str, device = 'cpu'):
+    if device.lower() == 'cuda' and torch.cuda.is_available() == False:
+        device = 'cpu'
+
     model = whisper.load_model(model, device=device)
     result = model.transcribe(
         audio,
@@ -39,6 +41,9 @@ def run_openai_whisper(audio, model: str, device = 'cpu'):
 # Transcribe an audio file with faster whisper library
 # model = "large" | "small" | "large-v3" | "tiny"
 def run_faster_whisper(audio, model: str, device = 'cpu'):
+    if device.lower() == 'cuda' and torch.cuda.is_available() == False:
+        device = 'cpu'
+
     model = faster_whisper.WhisperModel(model, device=device, compute_type="int8")
     segments, info = model.transcribe(
         audio,
@@ -105,15 +110,15 @@ if (os.path.isfile(textPath)):
     # print("->\n" + textContent)
 
 def transcribe(files: list):
-    model = "small"
+    model = "large-v3"
     device = 'cuda'
     result, totalTime = transcribeFasterWhisper(files, model, device)
     print(
         "\n\n------------------------------------\nWith Faster-Whisper ->\nDevice     : %s\nModel Size : %s\nTotal Time : %f seconds\nTranscribed: %s\nTextContent: %s\n------------------------------------\n\n"
         % (device, model, totalTime, result, textContent)
     )
-    model = "medium"
-    device = 'cpu'
+    model = "large-v3"
+    device = 'cuda'
     result, totalTime = transcribeFasterWhisper(files, model, device)
     print(
         "\n\n------------------------------------\nWith Faster-Whisper ->\nDevice     : %s\nModel Size : %s\nTotal Time : %f seconds\nTranscribed: %s\nTextContent: %s\n------------------------------------\n\n"
