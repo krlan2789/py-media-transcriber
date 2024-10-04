@@ -109,24 +109,15 @@ if (os.path.isfile(textPath)):
     textFile.close()
     # print("->\n" + textContent)
 
-def transcribe(files: list):
-    model = "large-v3"
-    device = 'cuda'
-    result, totalTime = transcribeFasterWhisper(files, model, device)
-    print(
-        "\n\n------------------------------------\nWith Faster-Whisper ->\nDevice     : %s\nModel Size : %s\nTotal Time : %f seconds\nTranscribed: %s\nTextContent: %s\n------------------------------------\n\n"
-        % (device, model, totalTime, result, textContent)
-    )
-    model = "large-v3"
-    device = 'cuda'
+def transcribe(files: list, model = 'base', device = 'cpu'):
     result, totalTime = transcribeFasterWhisper(files, model, device)
     print(
         "\n\n------------------------------------\nWith Faster-Whisper ->\nDevice     : %s\nModel Size : %s\nTotal Time : %f seconds\nTranscribed: %s\nTextContent: %s\n------------------------------------\n\n"
         % (device, model, totalTime, result, textContent)
     )
 
-    # model = "base"
-    # result, totalTime = transcribeOpenaiWhisper(files, model)
+    # result, totalTime = transcribeOpenaiWhisper(files, model, device)
     # print("\n\n------------------------------------\nWith OpenAI-Whisper ->\nModel Size : %s\nTotal Time : %f seconds\nTranscribed: %s\nTextContent: %s\n------------------------------------\n\n" % (model, totalTime, result, textContent))
 
-transcribe(audiosPath)
+transcribe(audiosPath, 'tiny', 'cpu')
+transcribe(audiosPath, 'base', 'cuda')
