@@ -119,5 +119,6 @@ def transcribe(files: list, model = 'base', device = 'cpu'):
     # result, totalTime = transcribeOpenaiWhisper(files, model, device)
     # print("\n\n------------------------------------\nWith OpenAI-Whisper ->\nModel Size : %s\nTotal Time : %f seconds\nTranscribed: %s\nTextContent: %s\n------------------------------------\n\n" % (model, totalTime, result, textContent))
 
-transcribe(audiosPath, 'tiny', 'cpu')
+transcribe(audiosPath, 'tiny', 'cuda')
 transcribe(audiosPath, 'base', 'cuda')
+transcribe(audiosPath, 'small', 'cuda')
