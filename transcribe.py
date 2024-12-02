@@ -6,24 +6,15 @@ os.environ["OMP_NUM_THREADS"] = "4"
 import argparse
 import json
 import torch
-import whisper
-import faster_whisper
 
-# device = 'cpu'
-# if torch.cuda.is_available():
-#     device = 'cuda'
-# print("CUDA : " , torch.cuda.is_available())
-# print("CUDA Current Device : " , torch.cuda.current_device())
-# print("CUDA Is Initialized : " , torch.cuda.is_initialized())
-# print("CUDA Memory Allocated : " , torch.cuda.memory_allocated())
-# print("CUDA Memory Reserved : " , torch.cuda.memory_reserved())
-# print("CUDA Memory Summary :\n" , torch.cuda.memory_summary())
+# import whisper
+import faster_whisper
 
 
 def clear(text: str):
     return (
-        text.replace(",", r"")
-        .replace(" ", r"")
+        text.replace(" ", r"")
+        .replace(",", r"")
         .replace("?", r"")
         .replace(".", r"")
         .replace("。", r"")
@@ -31,23 +22,39 @@ def clear(text: str):
     )
 
 
-# Transcribe an audio file with openai whisper library
-# model = "turbo" | "small" | "tiny"
-def run_openai_whisper(audio, model: str, device="cpu"):
-    if device.lower() == "cuda" and torch.cuda.is_available() == False:
-        device = "cpu"
+# # Transcribe an audio file with openai whisper library
+# # model = "turbo" | "small" | "tiny"
+# def run_openai_whisper(audio, model: str, device="cpu"):
+#     if device.lower() == "cuda" and torch.cuda.is_available() == False:
+#         device = "cpu"
 
-    model = whisper.load_model(model, device=device)
-    result = model.transcribe(
-        audio,
-        beam_size=5,
-        word_timestamps=True,
-        language="zh",
-        fp16=False,
-        initial_prompt="CLC Mandarin",
-        condition_on_previous_text=False,
-    )
-    return clear(result["text"])
+#     model = whisper.load_model(model, device=device)
+#     result = model.transcribe(
+#         audio,
+#         beam_size=5,
+#         word_timestamps=True,
+#         language="zh",
+#         fp16=False,
+#         initial_prompt="CLC Mandarin",
+#         condition_on_previous_text=False,
+#     )
+#     return clear(result["text"])
+
+
+# # Transcribe multiple audio files with openai whisper library
+# def transcribeOpenaiWhisper(files: [], model: str, device="cpu"):
+#     results = ""
+#     totalTime = 0
+#     for path in files:
+#         start = time.time()
+#         result = run_openai_whisper(path, model, device)
+#         print("transcribeOpenaiWhisper.result: " + result)
+#         results += result
+#         end = time.time()
+#         timeElapsed = end - start
+#         totalTime += timeElapsed
+#         # print("\nopenai-whisper[%s]: %f seconds\n%s" % (model, timeElapsed, result))
+#     return results, totalTime
 
 
 # Transcribe an audio file with faster whisper library
@@ -64,7 +71,10 @@ def run_faster_whisper(audio, model: str, device="cpu"):
         language="zh",
         initial_prompt="CLC Mandarin",
     )
-    # print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
+    # print(
+    #     "Detected language '%s' with probability %f%%"
+    #     % (info.language, (info.language_probability * 100))
+    # )
     text = ""
     sentence = ""
     for segment in segments:
@@ -72,36 +82,26 @@ def run_faster_whisper(audio, model: str, device="cpu"):
         sentence += " "
         for word in segment.words:
             sentence += word.word
-    return clear(text)
+
+    return text.strip()  # clear(text)
 
 
 # Transcribe multiple audio files with faster whisper library
 def transcribeFasterWhisper(files: [], model: str, device="cpu"):
-    results = ""
+    results = []
     totalTime = 0
     for path in files:
         start = time.time()
+        # print("run_faster_whisper(executed): " + path)
         result = run_faster_whisper(path, model, device)
-        results += result
+        # print("transcribeFasterWhisper.result: " + result)
+        results.append(result)
         end = time.time()
         timeElapsed = end - start
         totalTime += timeElapsed
         # print("\nfaster-whisper[%s]: %f seconds\n%s" % (model, timeElapsed, result))
-    return results, totalTime
 
-
-# Transcribe multiple audio files with openai whisper library
-def transcribeOpenaiWhisper(files: [], model: str, device="cpu"):
-    results = ""
-    totalTime = 0
-    for path in files:
-        start = time.time()
-        result = run_openai_whisper(path, model, device)
-        results += result
-        end = time.time()
-        timeElapsed = end - start
-        totalTime += timeElapsed
-        # print("\nopenai-whisper[%s]: %f seconds\n%s" % (model, timeElapsed, result))
+    # print("\nfaster-whisper[%s]: %s" % (model, results))
     return results, totalTime
 
 
@@ -109,74 +109,54 @@ def transcribeOpenaiWhisper(files: [], model: str, device="cpu"):
 
 
 def transcribe(files: list, model="base", device="cpu", textContent=""):
-    result, totalTime = transcribeFasterWhisper(files, model, device)
+    results, totalTime = transcribeFasterWhisper(files, model, device)
     # print(
     #     "\n\n------------------------------------\nWith Faster-Whisper ->\nDevice     : %s\nModel Size : %s\nTotal Time : %f seconds\nTranscribed: %s\nTextContent: %s\n------------------------------------\n\n"
-    #     % (device, model, totalTime, result, textContent)
+    #     % (device, model, totalTime, results, textContent)
     # )
     return {
         "status": True,
         "device": device,
         "model_size": model,
         "time_elaped": totalTime,
-        "transcription": result,
+        "transcription": results,
     }
-
-    # result, totalTime = transcribeOpenaiWhisper(files, model, device)
-    # print("\n\n------------------------------------\nWith OpenAI-Whisper ->\nModel Size : %s\nTotal Time : %f seconds\nTranscribed: %s\nTextContent: %s\n------------------------------------\n\n" % (model, totalTime, result, textContent))
 
 
 # Set arguments
 parser = argparse.ArgumentParser()
-# parser.add_argument("--textdir", help="Text Directory", default="")
-# parser.add_argument("-t", nargs="+", help="Text files path", default=[])
 parser.add_argument("--audiodir", help="Audio Directory", default="")
 parser.add_argument("-a", nargs="+", help="Audio files path", default=[])
 parser.add_argument("-m", help="Model size: tiny|small|large|large-v3", default="small")
-parser.add_argument("-d", help="Device: auto|cpu|cuda", default="auto")
-# parser.add_argument(
-#     "--help",
-#     help="--audiodir,\tAudio Directory\n-a,\t\tAudio files path\n-m,\t\tModel size: tiny|small|large|large-v3, default=small\n-d,\t\tDevice: auto|cpu|cuda, default=auto",
-#     default="",
-# )
+parser.add_argument("-d", help="Device: cpu|cuda", default="cpu")
 args = parser.parse_args()
 
 audioFileDir = args.audiodir
 audioFilesPath = args.a
-# textFileDir = args.textdir
-# textFilesPath = args.t
 modelSize = args.m
 device = args.d
-_help = args.h
-
-# print(f"Directory  : {audioFileDir}")
-# print(f"File Path  : {audioFilesPath}")
-# print(f"Model Size : {modelSize}")
-# print(f"Device     : {device}")
 
 results = {
     "status": False,
 }
 
-if __name__ == "__main__" and _help == "":
+if __name__ == "__main__":
     if audioFileDir or audioFilesPath:
+        audiosPath = []
+
         # Getting audio files to transcribe
-        audiosPath = os.listdir(audioFileDir)
-        for idx, f in enumerate(audiosPath):
-            audiosPath[idx] = audioFileDir + audiosPath[idx]
-        for idx, f in enumerate(audioFilesPath):
-            audiosPath.append(f)
-        print(f"Audio files Path  : {audiosPath}")
+        if audioFileDir:
+            audiosPath = os.listdir(audioFileDir)
+            for idx, f in enumerate(audiosPath):
+                audiosPath[idx] = audioFileDir + audiosPath[idx]
 
-        # File to compare
-        # textPath = "./audio/W07D4.txt"
-        # textContent = ""
-        # if os.path.isfile(textPath):
-        #     textFile = open(textPath, "r", encoding="utf8")
-        #     textContent = textFile.read()
-        #     textFile.close()
-        #     # print("->\n" + textContent)
+        if audioFilesPath:
+            for idx, f in enumerate(audioFilesPath):
+                audiosPath.append(f)
+        # print(f"Audio files Path  : {audiosPath}")
 
-        result = transcribe(audiosPath, modelSize, device)
+        # print("\nTranscription audio files..")
+        results = transcribe(audiosPath, modelSize, device)
+        # print("Audio files transcribed!")
 
-    print(json.dumps(result))
+print(json.dumps(results, ensure_ascii=False))
